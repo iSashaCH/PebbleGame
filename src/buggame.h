@@ -6,9 +6,9 @@ enum BugType { Red = 0, Blue = 1, Green = 2 };
 enum Direction { Up, Down, Left, Right };
 
 typedef struct {
-	 bool isPlayer;
-	 bool isProcessed;
-	 enum BugType type;
+	bool isPlayer;
+	bool isProcessed;
+	enum BugType type;
 } Bug;
 
 // button handlers
