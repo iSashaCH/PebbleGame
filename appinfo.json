@@ -1,0 +1,23 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "oleks.chernenko@gmail.com",
+    "enableMultiJS": true,
+    "longName": "Game Alpha",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "Game Alpha",
+    "targetPlatforms": [
+        "basalt"
+    ],
+    "uuid": "48cc65b0-4929-4d70-b71e-d11719ac2390",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
