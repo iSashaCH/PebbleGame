@@ -13,8 +13,12 @@ enum Direction { Up = 0 , Down = 1, Left = 2, Right = 3 };
 
 typedef struct {
 	 bool isPlayer;
-	 bool isProcessed;
+	 bool isAlive;
 	 enum BugType type;
+	 uint8_t cx;
+	 uint8_t cy;
+	 Layer *layer;
+	
 } Bug;
 
 // button handlers
@@ -30,3 +34,6 @@ void clean_up();
 void clear_playfield();
 void update_status();
 void stop_game();
+
+void animate_spawn(Bug *bug);
+void animate_move(Bug *bug, const uint8_t x, const uint8_t y);
