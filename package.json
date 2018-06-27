@@ -1,0 +1,24 @@
+{
+    "author": "oleks.chernenko@gmail.com",
+    "dependencies": {},
+    "keywords": [],
+    "name": "game-alpha",
+    "pebble": {
+        "displayName": "Game Alpha",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "basalt"
+        ],
+        "uuid": "48cc65b0-4929-4d70-b71e-d11719ac2390",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}
