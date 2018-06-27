@@ -37,3 +37,4 @@ void stop_game();
 
 void animate_spawn(Bug *bug);
 void animate_move(Bug *bug, const uint8_t x, const uint8_t y);
+void animate_kill(Bug *bug, Bug *tgt);

@@ -11,7 +11,7 @@
 #define STEP 16
 
 
-const uint8_t dir_chances[4] = { 60, 37, 14 };
+const uint8_t dir_chances[4] = { 40, 25, 10 };
 
 static GColor s_colors[3];
 static Layer *s_window_layer;
@@ -37,15 +37,11 @@ static Bug* detect_collision(const uint8_t cx, const uint8_t cy) {
 
 static bool try_kill(Bug *ori_bug, Bug *tgt_bug) {
 	if (ori_bug == NULL || !ori_bug->isAlive) {
-#ifdef DEBUG
 		printf("Attacker is undefined or already dead");
-#endif
 		return false;
 	}
 	if (tgt_bug == NULL || !tgt_bug->isAlive) {
-#ifdef DEBUG
 		printf("Target is undefined or already dead");
-#endif
 		return false;
 	}
 	if (tgt_bug->isPlayer == ori_bug->isPlayer) {
@@ -54,21 +50,21 @@ static bool try_kill(Bug *ori_bug, Bug *tgt_bug) {
 #endif
 		return false;
 	}
-	if (tgt_bug != NULL && ((ori_bug->type == Red && tgt_bug->type != Blue) ||
+	if ((ori_bug->type == Red && tgt_bug->type != Blue) ||
 	                        (ori_bug->type == Blue && tgt_bug->type != Green) ||
-	                        (ori_bug->type == Green && tgt_bug->type != Red))  )  {
+	                        (ori_bug->type == Green && tgt_bug->type != Red))   {
 #ifdef DEBUG
 		printf("Spotted Enemy whom I cannot beat. Retreat!");
 #endif
 		return false;
 	}
-//kill him!
+
 	tgt_bug->isAlive = false;
 	layer_remove_from_parent(tgt_bug->layer);
 	total_bugs--;
-#ifdef DEBUG
-	printf("Victory! I have beaten the enemy!!!");
-#endif
+
+	printf("Victory! %d %d beaten %d %d", ori_bug->cx, ori_bug->cy, tgt_bug->cx, tgt_bug->cy);
+
 	if (ori_bug->isPlayer)  { player_score++; bot_bugs--; } else { bot_score++; player_bugs--; }
 	update_status();
 	if (player_bugs == 0 || bot_bugs == 0) stop_game();
@@ -78,7 +74,6 @@ static bool try_kill(Bug *ori_bug, Bug *tgt_bug) {
 static bool try_move_bug(Bug* ori_bug, enum Direction dir) {
 	if (ori_bug == NULL) return false;
 	uint8_t tcx = ori_bug->cx, tcy = ori_bug->cy;
-	//printf(" %d %d ", tcx, tcy);
 	switch (dir) {
 	case Up:
 
@@ -113,11 +108,13 @@ static bool try_move_bug(Bug* ori_bug, enum Direction dir) {
 //	printf ("Moving from %d %d to %d %d", ori_bug->cx, ori_bug->cy, tcx, tcy);
 //detect if there is any collision with phantom
 	Bug *tgt = detect_collision(tcx, tcy);
-	while (tgt != NULL && tgt->isPlayer != ori_bug->isPlayer && try_kill(ori_bug, tgt)) detect_collision(tcx, tcy); // iterate until kill all enemies
-	if (tgt != NULL) return false; // could not kill colliding enemy or that is same side bug => fail
-//move there - it's finally empty
-
-	animate_move(ori_bug, tcx, tcy);
+	bool murdered = false;
+	if (tgt != NULL) {
+		murdered = try_kill(ori_bug, tgt);
+		if (!murdered) return false; // cannot defeat the enemy or it is not an enemy
+		animate_kill(ori_bug, tgt);
+	}  else 	animate_move(ori_bug, tcx, tcy);
+	//move there - it's empty now
 	ori_bug->cx = tcx;
 	ori_bug->cy = tcy;
 	return true;
@@ -139,70 +136,70 @@ static enum Direction rand_dir(bool isPlayer) {
 }
 
 static enum Direction choose_direction(Bug *bug) {
-	bool isPlayer = bug->isPlayer;
-	uint8_t cx = bug->cx;
-	uint8_t cy = bug->cy;
-		if (isPlayer) {
-			if (cx >= 16 && detect_collision(cx - STEP, cy) != NULL &&  detect_collision(cx - STEP, cy)->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Player(%d,%d): Enemy Ahead, Attacking Left", cx, cy);
-	#endif
-				return Left;
-			}
-			if (cy >= 40 && detect_collision(cx, cy - STEP ) != NULL &&  detect_collision(cx, cy - STEP )->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Player(%d,%d): Enemy Above, Attacking Up", cx, cy);
-	#endif
-				return Up;
-			}
-			if (cy <= 120 && detect_collision(cx, cy + STEP ) != NULL &&  detect_collision(cx, cy + STEP )->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Player(%d,%d): Enemy Below, Attacking Down", cx, cy);
-	#endif
-				return Down;
-			}
-			if (cx <= 104 && detect_collision(cx + STEP, cy) != NULL &&  detect_collision(cx + STEP, cy)->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Player(%d,%d): Enemy Behind, Attacking Right", cx, cy);
-	#endif
-				return Right;
-			}
-	#ifdef DEBUG
-			printf("Player(%d,%d): No bots around - go random!", cx, cy);
-	#endif
-			return rand_dir(true);
-		} else
-		{
-		if (cx <= 104 && detect_collision(cx + STEP, cy) != NULL &&  detect_collision(cx + STEP, cy)->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Bot(%d,%d): Enemy Behind, Attacking Right", cx, cy);
-	#endif
-				return Right;
-			}
-		if (cy >= 40 && detect_collision(cx, cy - STEP ) != NULL &&  detect_collision(cx, cy - STEP )->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Bot(%d,%d): Enemy Above, Attacking Up", cx, cy);
-	#endif
-				return Up;
-			}
-			if (cy <= 120 && detect_collision(cx, cy + STEP ) != NULL &&  detect_collision(cx, cy + STEP )->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Bot(%d,%d): Enemy Below, Attacking Down", cx, cy);
-	#endif
-				return Down;
-			}
-		if (cx >= 16 && detect_collision(cx - STEP, cy) != NULL &&  detect_collision(cx - STEP, cy)->isPlayer!= isPlayer) {
-	#ifdef DEBUG
-				printf("Bot(%d,%d): Enemy Ahead, Attacking Left", cx, cy);
-	#endif
-				return Left;
-			}
-
-	#ifdef DEBUG
-			printf("Bot(%d,%d): No creatures around - go ahead!", cx, cy);
-	#endif
-			return rand_dir(false);
+	const bool isPlayer = bug->isPlayer;
+	const uint8_t cx = bug->cx;
+	const uint8_t cy = bug->cy;
+	if (isPlayer) {
+		if (cx >= 16 && detect_collision(cx - STEP, cy) != NULL &&  detect_collision(cx - STEP, cy)->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Player(%d,%d): Enemy Ahead, Attacking Left", cx, cy);
+#endif
+			return Left;
 		}
+		if (cy >= 40 && detect_collision(cx, cy - STEP ) != NULL &&  detect_collision(cx, cy - STEP )->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Player(%d,%d): Enemy Above, Attacking Up", cx, cy);
+#endif
+			return Up;
+		}
+		if (cy <= 120 && detect_collision(cx, cy + STEP ) != NULL &&  detect_collision(cx, cy + STEP )->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Player(%d,%d): Enemy Below, Attacking Down", cx, cy);
+#endif
+			return Down;
+		}
+		if (cx <= 104 && detect_collision(cx + STEP, cy) != NULL &&  detect_collision(cx + STEP, cy)->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Player(%d,%d): Enemy Behind, Attacking Right", cx, cy);
+#endif
+			return Right;
+		}
+#ifdef DEBUG
+		printf("Player(%d,%d): No bots around - go random!", cx, cy);
+#endif
+		return rand_dir(true);
+	} else
+	{
+		if (cx <= 104 && detect_collision(cx + STEP, cy) != NULL &&  detect_collision(cx + STEP, cy)->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Bot(%d,%d): Enemy Ahead, Attacking Right", cx, cy);
+#endif
+			return Right;
+		}
+		if (cy >= 40 && detect_collision(cx, cy - STEP ) != NULL &&  detect_collision(cx, cy - STEP )->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Bot(%d,%d): Enemy Above, Attacking Up", cx, cy);
+#endif
+			return Up;
+		}
+		if (cy <= 120 && detect_collision(cx, cy + STEP ) != NULL &&  detect_collision(cx, cy + STEP )->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Bot(%d,%d): Enemy Below, Attacking Down", cx, cy);
+#endif
+			return Down;
+		}
+		if (cx >= 16 && detect_collision(cx - STEP, cy) != NULL &&  detect_collision(cx - STEP, cy)->isPlayer != isPlayer) {
+#ifdef DEBUG
+			printf("Bot(%d,%d): Enemy Ahead, Attacking Left", cx, cy);
+#endif
+			return Left;
+		}
+
+#ifdef DEBUG
+		printf("Bot(%d,%d): No creatures around - go ahead!", cx, cy);
+#endif
+		return rand_dir(false);
+	}
 }
 
 static Bug* find_dead_bug() {
@@ -213,7 +210,7 @@ static Bug* find_dead_bug() {
 }
 
 static bool spawn_bug(bool isPlayer, enum BugType type) {
-	if (total_bugs >= 64) return false;
+	if (total_bugs >= 32) return false;
 	uint8_t cx = isPlayer ? 120 : 8 , cy = 16 * (rand() % 8) + 24;
 	Bug *bug  = find_dead_bug();
 	if (bug == NULL) return false;
@@ -222,17 +219,16 @@ static bool spawn_bug(bool isPlayer, enum BugType type) {
 	bug->isPlayer = isPlayer;
 	bug->type = type;
 	Bug *tgt = detect_collision(bug->cx, bug->cy);
-	while (tgt != NULL && tgt->isPlayer != isPlayer && try_kill(bug, tgt)) detect_collision(bug->cx, bug->cy); // iterate until kill all enemies
-	if (tgt != NULL) return false; // could not kill colliding enemy or that is same side bug => fail
-	bug->isAlive = true;
-	total_bugs++;
-	if (isPlayer) player_bugs++; else bot_bugs++;
-	update_status();
-	layer_set_frame(bug->layer, GRect(cx + MARGIN , cy + MARGIN, SIZE, SIZE));
-	layer_add_child(s_window_layer, bug->layer);
-	animate_spawn(bug);
-	return true;
-}
+	if (tgt != NULL && !try_kill(bug, tgt)) return false; // place is busy with undefeatable bug
+		bug->isAlive = true;
+		total_bugs++;
+		if (isPlayer) player_bugs++; else bot_bugs++;
+			update_status();
+			layer_set_frame(bug->layer, GRect(cx + MARGIN , cy + MARGIN, SIZE, SIZE));
+				layer_add_child(s_window_layer, bug->layer);
+				animate_spawn(bug);
+				return true;
+			}
 
 void game_tick() {
 	if (!isRunning) return;
@@ -240,22 +236,11 @@ void game_tick() {
 	Bug *bug = NULL;
 	for (uint8_t i = 0; i < 64; i++ ) {
 		bug = &s_bugs_pool[i];
-		if (!bug->isAlive) continue;
 		if (bug == NULL) continue;
+		if (!bug->isAlive) continue;
 		// if there is an enemy around attack in following priority (Back, Up, Down, Forward) otherwise by default try move forward.
-		if (try_move_bug(bug, choose_direction(bug))) continue;
+		try_move_bug(bug, choose_direction(bug));
 		// if forward is blocked by own bug - move up/down to evade
-		uint8_t up = rand() % 2;
-		if (up == 1) {
-			if (try_move_bug(bug, Up)) continue;
-			if (try_move_bug(bug, Down)) continue;
-		} else		{
-			if (try_move_bug(bug, Down)) continue;
-			if (try_move_bug(bug, Up)) continue;
-		}
-		// finally try move backwards
-		if (bug->isPlayer) { if (try_move_bug(bug, Right)) continue; }
-		else if (try_move_bug(bug, Left)) continue;
 	}
 }
 
@@ -307,6 +292,30 @@ void animate_move(Bug *bug, const uint8_t x, const uint8_t y) {
 	animation_schedule(anim_move_1_a);
 }
 
+void animate_kill(Bug *bug, Bug* tgt) {
+	const uint8_t sx = bug->cx;
+	const uint8_t sy = bug->cy;
+	const uint8_t x = tgt->cx;
+	const uint8_t y = tgt->cy;
+	GRect start = GRect(sx + MARGIN, sy + MARGIN, SIZE, SIZE);
+	GRect finish = GRect(sx + MARGIN - SIZE / 2, sy + MARGIN - SIZE / 2, SIZE*2, SIZE*2);
+	PropertyAnimation *prop_anim_move_1_a = property_animation_create_layer_frame(bug->layer, &start, &finish);
+	Animation *anim_move_1_a = property_animation_get_animation(prop_anim_move_1_a);
+	animation_set_duration(anim_move_1_a, 333);
+	start = finish;
+	finish = GRect(x + MARGIN + SIZE / 2, y + MARGIN + SIZE / 2, 1, 1);
+	PropertyAnimation *prop_anim_move_1_b = property_animation_create_layer_frame(bug->layer, &start, &finish);
+	Animation *anim_move_1_b = property_animation_get_animation(prop_anim_move_1_b);
+	animation_set_duration(anim_move_1_b, 333);
+	start = finish;
+	finish = GRect(x + MARGIN, y + MARGIN, SIZE, SIZE);
+	PropertyAnimation *prop_anim_move_1_c = property_animation_create_layer_frame(bug->layer, &start, &finish);
+	Animation *anim_move_1_c = property_animation_get_animation(prop_anim_move_1_c);
+	animation_set_duration(anim_move_1_a, 333);
+	Animation *seq_a = animation_sequence_create(anim_move_1_a, anim_move_1_b, anim_move_1_c, NULL);
+	animation_schedule(seq_a);
+}
+
 void update_status() {
 	static char s_status_buffer[27];
 	static char s_score_buffer[10];
@@ -350,6 +359,7 @@ void clear_playfield() {
 void blue_click_handler(ClickRecognizerRef recognizer, void *context) {
 	if (isRunning) //game_tick();
 		spawn_bug(true, Blue);
+	//spawn_bug(false, rand() % 3);
 	/*	else {
 				player_score = bot_score = 0;
 				clear_playfield();
@@ -360,10 +370,12 @@ void blue_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 void red_click_handler(ClickRecognizerRef recognizer, void *context) {
 	if (isRunning) spawn_bug(true, Red);
+	//spawn_bug(false, rand() % 3);
 }
 
 void green_click_handler(ClickRecognizerRef recognizer, void *context) {
 	if (isRunning) spawn_bug(true, Green);
+	//spawn_bug(false, rand() % 3);
 }
 
 void init_bugs() {
@@ -399,6 +411,7 @@ void clean_up() {
 	text_layer_destroy(s_status_layer);
 	text_layer_destroy(s_score_layer);
 }
+
 
 
 
